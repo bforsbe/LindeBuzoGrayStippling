@@ -240,6 +240,7 @@ SettingsWidget::SettingsWidget(StippleViewer *stippleViewer, QWidget *parent)
   connect(startButton, &QPushButton::released,
           [fileButton]() { fileButton->setEnabled(false); });
 
+
   QProgressBar *progressBar = new QProgressBar(this);
   progressBar->setRange(0, 1);
   progressBar->setAlignment(Qt::AlignCenter);
@@ -255,6 +256,18 @@ SettingsWidget::SettingsWidget(StippleViewer *stippleViewer, QWidget *parent)
   connect(startButton, &QPushButton::released, [this, progressBar]() {
     progressBar->setRange(0, 0);
     m_stippleViewer->stipple(m_params);
+  });
+
+    // invert button
+  QGroupBox *opGroup = new QGroupBox("Image ops:", this);
+  QVBoxLayout *opLayout = new QVBoxLayout(opGroup);
+
+  QPushButton *invertButton = new QPushButton("Invert image", this);
+  opLayout->addWidget(invertButton);
+  opGroup->setLayout(opLayout);
+  layout->addWidget(opGroup);
+  connect(invertButton, &QPushButton::released, [this, progressBar]() {
+    m_stippleViewer->invert();
   });
 
   layout->addStretch(1);

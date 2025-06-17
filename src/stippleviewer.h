@@ -11,6 +11,7 @@ class StippleViewer : public QGraphicsView {
  public:
   StippleViewer(const QImage &img, QWidget *parent);
   void stipple(const LBGStippling::Params params);
+  void invert();
   QPixmap getImage();
   void setInputImage(const QImage &img);
   void saveImageSVG(const QString &path);

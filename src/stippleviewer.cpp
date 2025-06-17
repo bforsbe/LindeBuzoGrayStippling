@@ -74,7 +74,8 @@ void StippleViewer::saveImagePDF(const QString &path) {
   printer.setOutputFormat(QPrinter::PdfFormat);
   printer.setCreator("Weighted Linde-Buzo-Gray Stippling");
   printer.setOutputFileName(path);
-  printer.setPaperSize(m_image.size(), QPrinter::Point);
+  QPageSize pageSize(QSizeF(m_image.size()), QPageSize::Point);
+  printer.setPageSize(pageSize);
   printer.setFullPage(true);
 
   QPainter painter(&printer);
@@ -100,3 +101,11 @@ void StippleViewer::stipple(const LBGStippling::Params params) {
   m_stippling.stipple(m_image, params);
   emit finished();
 }
+
+
+void StippleViewer::invert() {
+  // TODO: Handle return value
+  m_image.invertPixels();
+  this->setInputImage(m_image);
+}
+
