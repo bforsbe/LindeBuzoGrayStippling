@@ -2,6 +2,11 @@
 #include "voronoidiagram.h"
 
 #include <cmath>
+#include <omp.h>
+#include <unordered_map>
+#include <vector>
+#include <iostream>
+
 
 struct Moments {
   float moment00;
@@ -12,31 +17,64 @@ struct Moments {
   float moment02;
 };
 
+struct LocalAccum {
+  uint32_t area = 0;
+  float sumDensity = 0.0f;
+  Moments m{};
+};
+
 std::vector<VoronoiCell> accumulateCells(const IndexMap& map,
                                          const QImage& density) {
   // compute voronoi cell moments
   std::vector<VoronoiCell> cells = std::vector<VoronoiCell>(map.count());
   std::vector<Moments> moments = std::vector<Moments>(map.count());
 
-  for (int x = 0; x < map.width; ++x) {
-    for (int y = 0; y < map.height; ++y) {
-      uint32_t index = map.get(x, y);
+  #pragma omp parallel
+  {
 
-      QRgb densityPixel = density.pixel(x, y);
-      float density = std::max(1.0f - qGray(densityPixel) / 255.0f,
-                               std::numeric_limits<float>::epsilon());
+    //int id = omp_get_thread_num();
+    //std::cout << "Hello from thread " << id << "\n";
 
-      VoronoiCell& cell = cells[index];
-      cell.area++;
-      cell.sumDensity += density;
+    // Thread-local accumulation map
+    std::unordered_map<uint32_t, LocalAccum> local;
 
-      Moments& m = moments[index];
-      m.moment00 += density;
-      m.moment10 += x * density;
-      m.moment01 += y * density;
-      m.moment11 += x * y * density;
-      m.moment20 += x * x * density;
-      m.moment02 += y * y * density;
+    #pragma omp for nowait
+    for (int x = 0; x < map.width; ++x) {
+      for (int y = 0; y < map.height; ++y) {
+        uint32_t index = map.get(x, y);
+
+        QRgb densityPixel = density.pixel(x, y);
+        float densityVal = std::max(1.0f - qGray(densityPixel) / 255.0f,
+                                    std::numeric_limits<float>::epsilon());
+
+        LocalAccum& acc = local[index];
+        acc.area++;
+        acc.sumDensity += densityVal;
+
+        acc.m.moment00 += densityVal;
+        acc.m.moment10 += x * densityVal;
+        acc.m.moment01 += y * densityVal;
+        acc.m.moment11 += x * y * densityVal;
+        acc.m.moment20 += x * x * densityVal;
+        acc.m.moment02 += y * y * densityVal;
+      }
+    }
+
+    // Merge thread-local results into global arrays
+    #pragma omp critical
+    {
+      for (const auto& [index, acc] : local) {
+        cells[index].area += acc.area;
+        cells[index].sumDensity += acc.sumDensity;
+
+        Moments& m = moments[index];
+        m.moment00 += acc.m.moment00;
+        m.moment10 += acc.m.moment10;
+        m.moment01 += acc.m.moment01;
+        m.moment11 += acc.m.moment11;
+        m.moment20 += acc.m.moment20;
+        m.moment02 += acc.m.moment02;
+      }
     }
   }
 

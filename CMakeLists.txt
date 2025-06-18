@@ -31,7 +31,7 @@ set(SOURCES
 )
 
 find_package(Qt5 5.10 COMPONENTS Core Widgets Svg PrintSupport REQUIRED)
-
+find_package(OpenMP REQUIRED)
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${Qt5Core_INCLUDE_DIRS}
@@ -47,4 +47,5 @@ target_link_libraries(${PROJECT_NAME}
 	Qt5::Widgets
 	Qt5::Svg
 	Qt5::PrintSupport
+        OpenMP::OpenMP_CXX
 )
