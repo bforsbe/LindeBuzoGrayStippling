@@ -167,6 +167,14 @@ std::vector<Stipple> LBGStippling::stipple(const QImage &density,
     m_statusCallback(status);
 
     ++status.iteration;
+    ++this->iter;
   }
   return stipples;
+}
+
+bool LBGStippling::draw() const {
+  if(this->iter%5==0)
+    return(true);
+  else
+    return(false);
 }

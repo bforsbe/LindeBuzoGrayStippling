@@ -3,6 +3,41 @@
 #include <QCoreApplication>
 #include <QPrinter>
 #include <QSvgGenerator>
+#include <QGraphicsItem>
+
+class StippleItem : public QGraphicsItem {
+public:
+    std::vector<Stipple> stipples;  // Stipple points to render
+    double imageWidth;
+    double imageHeight;
+
+    // Set the image dimensions, which will be used for scaling
+    void setImageDimensions(double width, double height) {
+        imageWidth = width;
+        imageHeight = height;
+    }
+
+    QRectF boundingRect() const override {
+        // Calculate bounding rect if needed, for better clipping and optimization
+        return QRectF(0, 0, imageWidth, imageHeight);  // Adjust as necessary
+    }
+
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) override {
+        painter->setPen(Qt::NoPen);
+
+        // Loop over the stipples and render each one
+        for (const Stipple& s : stipples) {
+            // Apply the coordinate correction based on the image size
+            double x = static_cast<double>(s.pos.x() * imageWidth - s.size / 2.0);
+            double y = static_cast<double>(s.pos.y() * imageHeight - s.size / 2.0);
+            double size = static_cast<double>(s.size);
+
+            painter->setBrush(s.color);
+            painter->drawRect(QRectF(x, y, size, size));
+        }
+    }
+};
+
 
 StippleViewer::StippleViewer(const QImage &img, QWidget *parent)
     : QGraphicsView(parent), m_image(img) {
@@ -30,13 +65,21 @@ StippleViewer::StippleViewer(const QImage &img, QWidget *parent)
 }
 
 void StippleViewer::displayPoints(const std::vector<Stipple> &stipples) {
-  this->scene()->clear();
-  for (const auto &s : stipples) {
-    double x = static_cast<double>(s.pos.x() * m_image.width() - s.size / 2.0f);
-    double y =
-        static_cast<double>(s.pos.y() * m_image.height() - s.size / 2.0f);
-    double size = static_cast<double>(s.size);
-    this->scene()->addEllipse(x, y, size, size, Qt::NoPen, s.color);
+  if(this->draw())
+  {
+    this->scene()->clear();
+    auto item = new StippleItem();
+    item->stipples = stipples;
+    item->setImageDimensions(m_image.width(), m_image.height());  // Set the image dimensions
+
+    scene()->addItem(item);
+    //for (const auto &s : stipples) {
+    //  double x = static_cast<double>(s.pos.x() * m_image.width() - s.size / 2.0f);
+    //  double y =
+    //      static_cast<double>(s.pos.y() * m_image.height() - s.size / 2.0f);
+    //  double size = static_cast<double>(s.size);
+    //  this->scene()->addEllipse(x, y, size, size, Qt::NoPen, s.color);
+    //}
   }
   // TODO: Fix event handling
   QCoreApplication::processEvents();
@@ -102,6 +145,12 @@ void StippleViewer::stipple(const LBGStippling::Params params) {
   emit finished();
 }
 
+bool StippleViewer::draw() {
+  bool doDraw(false);
+  if(m_stippling.draw())
+    doDraw = true;
+  return(doDraw);
+}
 
 void StippleViewer::invert() {
   // TODO: Handle return value

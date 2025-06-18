@@ -9,7 +9,7 @@
 
 #include "shader/Voronoi.frag.h"
 #include "shader/Voronoi.vert.h"
-
+#include <GL/gl.h>
 ////////////////////////////////////////////////////////////////////////////////
 /// Cell Encoder
 
@@ -161,26 +161,31 @@ IndexMap VoronoiDiagram::calculate(const QVector<QVector2D>& points) {
 
   m_vao->release();
 
-  QImage voronoiDiagram = m_fbo->toImage();
-  //  voronoiDiagram.save("voronoiDiagram.png");
+  int width = m_fbo->width();
+  int height = m_fbo->height();
+  int channels = 3; // RGB
 
-  m_fbo->release();
-  m_context->doneCurrent();
+  std::vector<uint8_t> pixelBuffer(width * height * channels); // tightly packed RGB
 
-  IndexMap idxMap(m_fbo->width(), m_fbo->height(), points.size());
+  // Read pixels directly from FBO into the buffer
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixelBuffer.data());
 
-  for (int y = 0; y < m_fbo->height(); ++y) {
-    for (int x = 0; x < m_fbo->width(); ++x) {
-      QRgb voroPixel = voronoiDiagram.pixel(x, y);
+  IndexMap idxMap(width, height, points.size());
 
-      int r = qRed(voroPixel);
-      int g = qGreen(voroPixel);
-      int b = qBlue(voroPixel);
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      int flippedY = height - 1 - y;  // flip y axis if needed
+      size_t i = (flippedY * width + x) * channels;
+
+      uint32_t r = pixelBuffer[i];
+      uint32_t g = pixelBuffer[i + 1];
+      uint32_t b = pixelBuffer[i + 2];
 
       uint32_t index = CellEncoder::decode(r, g, b);
       assert(index <= points.size());
 
-      idxMap.set(x, y, index);
+      idxMap.set(x, y, index); // assuming top-left is (0,0)
     }
   }
   return idxMap;

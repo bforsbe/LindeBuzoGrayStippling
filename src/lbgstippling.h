@@ -17,9 +17,9 @@ class LBGStippling {
  public:
   struct Params {
     size_t initialPoints = 1;
-    float initialPointSize = 4.0f;
+    float initialPointSize = 1.0f;
 
-    bool adaptivePointSize = true;
+    bool adaptivePointSize = false;
     float pointSizeMin = 2.0f;
     float pointSizeMax = 4.0f;
 
@@ -38,6 +38,8 @@ class LBGStippling {
     float hysteresis;
   };
 
+  mutable size_t iter;
+
   template <class T>
   using Report = std::function<void(const T&)>;
 
@@ -45,6 +47,8 @@ class LBGStippling {
 
   std::vector<Stipple> stipple(const QImage& density,
                                const Params& params) const;
+
+  bool draw() const;
 
   // TODO: Rename and method chaining.
   void setStatusCallback(Report<Status> statusCB);
