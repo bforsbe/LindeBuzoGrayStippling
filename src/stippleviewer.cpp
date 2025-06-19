@@ -5,6 +5,9 @@
 #include <QSvgGenerator>
 #include <QGraphicsItem>
 
+//#define ONLYRECT 
+
+#ifdef ONLYRECT
 class StippleItem : public QGraphicsItem {
 public:
     std::vector<Stipple> stipples;  // Stipple points to render
@@ -37,7 +40,7 @@ public:
         }
     }
 };
-
+#endif
 
 StippleViewer::StippleViewer(const QImage &img, QWidget *parent)
     : QGraphicsView(parent), m_image(img) {
@@ -68,18 +71,21 @@ void StippleViewer::displayPoints(const std::vector<Stipple> &stipples) {
   if(this->draw())
   {
     this->scene()->clear();
+#ifdef ONLYRECT
     auto item = new StippleItem();
     item->stipples = stipples;
     item->setImageDimensions(m_image.width(), m_image.height());  // Set the image dimensions
 
     scene()->addItem(item);
-    //for (const auto &s : stipples) {
-    //  double x = static_cast<double>(s.pos.x() * m_image.width() - s.size / 2.0f);
-    //  double y =
-    //      static_cast<double>(s.pos.y() * m_image.height() - s.size / 2.0f);
-    //  double size = static_cast<double>(s.size);
-    //  this->scene()->addEllipse(x, y, size, size, Qt::NoPen, s.color);
-    //}
+#else
+    for (const auto &s : stipples) {
+      double x = static_cast<double>(s.pos.x() * m_image.width() - s.size / 2.0f);
+      double y =
+          static_cast<double>(s.pos.y() * m_image.height() - s.size / 2.0f);
+      double size = static_cast<double>(s.size);
+      this->scene()->addEllipse(x, y, size, size, Qt::NoPen, s.color);
+    }
+#endif
   }
   // TODO: Fix event handling
   QCoreApplication::processEvents();
